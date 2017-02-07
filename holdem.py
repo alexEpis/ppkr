@@ -57,7 +57,44 @@ class Player(object):
         self.hand.append(deck.deal())
 
 
+class Table(object):
+    common_cards = []
+    players_in_game = []
+    deck = Deck()
+    pot = 0
+
+    def __init__(self, *players):
+        self.deck.shuffle()
+        for pl in players:
+            self.players_in_game.append(pl)
+
+    def new_player(self, position, player):
+        self.players_in_game.insert(position, player)
+
+    def player_leaves(self, player):
+        try:
+            self.players_in_game.remove(player)
+        except ValueError:
+            pass
+
+    def flop(self):
+        self.common_cards(deck.deal())
+        self.common_cards(deck.deal())
+        self.common_cards(deck.deal())
+
+    def turn(self):
+        self.common_cards(deck.deal())
+
+    def river(self):
+        self.common_cards(deck.deal())
+
+    def end_turn(self):
+        self.common_cards = []
+        self.pot = 0
+
+
 class Texas(object):
+    pass
 
 
 
