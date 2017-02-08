@@ -78,19 +78,23 @@ class Table(object):
             pass
 
     def flop(self):
-        self.common_cards(deck.deal())
-        self.common_cards(deck.deal())
-        self.common_cards(deck.deal())
+        self.common_cards.append(deck.deal())
+        self.common_cards.append(deck.deal())
+        self.common_cards.append(deck.deal())
 
     def turn(self):
-        self.common_cards(deck.deal())
+        self.common_cards.append(deck.deal())
 
     def river(self):
-        self.common_cards(deck.deal())
+        self.common_cards.append(deck.deal())
 
-    def end_turn(self):
+    def end_turn(self, shuffle=True):
         self.common_cards = []
         self.pot = 0
+        self.deck = Deck()
+        if shuffle:
+            self.deck.shuffle()
+
 
 
 class Texas(object):
