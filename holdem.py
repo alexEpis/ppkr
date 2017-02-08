@@ -1,6 +1,5 @@
 #! /usr/bin/python3.5.2
 
-
 class Card(object):
 
     def __init__(self, rank, suit):
@@ -62,44 +61,85 @@ class Table(object):
     players_in_game = []
     deck = Deck()
     pot = 0
+    max_bet = 0
 
     def __init__(self, *players):
+        import random
         self.deck.shuffle()
         for pl in players:
             self.players_in_game.append(pl)
+        self.small_blind = random.choice(self.players_in_game)
+        self.big_blind = self.next_player(self.small_blind)
+        self.current_player = self.next_player(self.big_blind)
+
+    def next_player(self, player):
+        try:
+            inx = self.players_in_game.index(player)
+            return self.players_in_game[inx + 1]
+        except IndexError:
+            return self.players_in_game[0]
 
     def new_player(self, position, player):
         self.players_in_game.insert(position, player)
 
-    def player_leaves(self, player):
+    def player_leaves_table(self, player):
         try:
             self.players_in_game.remove(player)
         except ValueError:
             pass
 
     def flop(self):
-        self.common_cards.append(deck.deal())
-        self.common_cards.append(deck.deal())
-        self.common_cards.append(deck.deal())
+        self.common_cards.append(self.deck.deal())
+        self.common_cards.append(self.deck.deal())
+        self.common_cards.append(self.deck.deal())
 
     def turn(self):
-        self.common_cards.append(deck.deal())
+        self.common_cards.append(self.deck.deal())
 
     def river(self):
-        self.common_cards.append(deck.deal())
+        self.common_cards.append(self.deck.deal())
 
-    def end_turn(self, shuffle=True):
+    def begin_round(self):
+        self.small_blind = self.big_blind
+        self.big_blind = self.next_player(self.small_blind)
+        self.current_player = self.next_player(self.big_blind)
+
+    def end_round(self):
         self.common_cards = []
         self.pot = 0
-        self.deck = Deck()
-        if shuffle:
-            self.deck.shuffle()
 
+    def bet(self, player, amount):
+        if player.bankroll >= player.bet:
+            player.bet += amount
+            player.bankroll -= amount
+        else:
+            player.bet += player.bankroll
+            player.bankroll = 0
+        if player.bet > self.max_bet:
+            self.max_bet = player.bet
+            self.current_player = player
 
 
 class Texas(object):
     pass
 
+
+class Evaluator(object):
+    order = ['Ace', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Jack', 'Queen', 'King']
+    suits = {'h': 'Heart', 'd': 'Diamond', 's': 'Spade', 'c': 'Club'}
+
+    def straight(self, *five_cards):
+        cards = [x.rank for x in five_cards]
+        cards.sort(key=lambda x: self.index(x[0]))
+        pass
+
+    def evaluate(self, *hand_combined_with_common):
+        for i in range(6):
+            for j in range(i + 1, 7):
+                temp_hnd = hand_combined_with_common.copy()
+                temp_hnd.remove(hand_combined_with_common[i])
+                temp_hnd.remove(hand_combined_with_common[j])
+                print(temp_hnd)
 
 
 
