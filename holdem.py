@@ -1,5 +1,6 @@
 #! /usr/bin/python3.5.2
 
+
 class Card(object):
 
     def __init__(self, rank, suit):
@@ -37,6 +38,148 @@ class Deck(object):
             return self.deck.popleft()
         except IndexError:
             return None
+
+
+class Evaluator(object):
+    suits = {'h': 'Heart', 'd': 'Diamond', 's': 'Spade', 'c': 'Club'}
+    best_hand = []
+    result = 'High Card'
+    score = 0
+
+    def create_ordered_hand(*five_cards):
+        order = ['Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Jack', 'Queen', 'King', 'Ace']
+        hand = list(five_cards)
+        hand.sort(key=lambda x: order.index(x.rank))
+        return hand
+
+    def straight(*five_ordered_cards):
+        if five_ordered_cards[-1].suit == 'Ace' and five_ordered_cards[0].suit == 'Two' \
+                and five_ordered_cards[1].suit == 'Three' and five_ordered_cards[2].suit == 'Four' \
+                and five_ordered_cards[3].suit == 'Five':
+            return True
+
+        order = ['Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Jack', 'Queen', 'King', 'Ace']
+        start = order.index(five_ordered_cards[0].suit)
+        for i in range(1, 5):
+            if order.index(five_ordered_cards[i].suit) != start+i:
+                return False
+        return True
+
+    def flush(*five_ordered_cards):
+        for card in five_ordered_cards:
+            if card.suit != five_ordered_cards[0].suit:
+                return False
+        return True
+
+    def one_pair(*five_ordered_cards):
+        for i in range(4):
+            if five_ordered_cards[i].rank == five_ordered_cards[i + 1].rank:
+                return True
+        return False
+
+    def two_pairs(*five_ordered_cards):
+        if five_ordered_cards[0].rank == five_ordered_cards[1].rank:
+            if five_ordered_cards[2].rank == five_ordered_cards[3].rank or \
+                            five_ordered_cards[3].rank == five_ordered_cards[4].rank:
+                return True
+        if five_ordered_cards[1].rank == five_ordered_cards[2].rank \
+                and five_ordered_cards[3].rank == five_ordered_cards[4].rank:
+            return True
+        return False
+
+    def three_of_kind(*five_ordered_cards):
+        for i in range(3):
+            if five_ordered_cards[i].rank == five_ordered_cards[i + 1].rank \
+                    and five_ordered_cards[i].rank == five_ordered_cards[i + 2].rank:
+                return True
+        return False
+
+    def four_of_kind(*five_ordered_cards):
+        for i in range(2):
+            if five_ordered_cards[i].rank == five_ordered_cards[i + 1].rank \
+                    and five_ordered_cards[i].rank == five_ordered_cards[i + 2].rank \
+                    and five_ordered_cards[i].rank == five_ordered_cards[i + 3].rank:
+                return True
+        return False
+
+    def full_house(*five_ordered_cards):
+        if five_ordered_cards[0].rank == five_ordered_cards[1].rank \
+                and five_ordered_cards[3].rank == five_ordered_cards[4].rank:
+            if five_ordered_cards[0].rank == five_ordered_cards[2].rank \
+                    or five_ordered_cards[2].rank == five_ordered_cards[3].rank:
+                return True
+        return False
+
+    def hand_evaluator(self, *five_cards):
+        order = ['Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Jack', 'Queen', 'King', 'Ace']
+        answer = [None, None]
+        cards = self.create_ordered_hand(five_cards)
+        if self.straight(cards) and self.flush(cards):
+            if cards[-1].rank == 'Ace' and cards[-2].rank == 'King':
+                answer[0] = 'Royal Flush'
+            elif cards[-1].rank == 'Ace':
+                answer[0] = 'Straight Flush'
+                answer[1] = order.index('Five')
+            else:
+                answer[0] = 'Straight Flush'
+                answer[1] = order.index(cards[-1].rank)
+            return answer
+        if self.four_of_kind(cards):
+            answer[0] = 'Four of a Kind'
+            answer[1] = order.index(five_cards[2].rank)
+            return answer
+        if self.full_house(cards):
+            answer[0] = 'Full House'
+            answer[1] = 100*order.index(five_cards[2].rank) + \
+                        (order.index(five_cards[0].rank) + order.index(five_cards[4].rank) -
+                         order.index(five_cards[2].rank))  # The parenthesis gives the index of the rank from pair.
+            return answer
+        if self.flush(cards):
+            answer[0] = 'Flush'
+            answer[1] = order.index(cards[-1].rank)
+            return answer
+        if self.straight(cards):
+            answer[0] = 'Straight'
+            if cards[0].rank == 'Two' and cards[-1].rank == 'Ace':
+                answer[1] = order.index('Five')
+            else:
+                answer[1] = order.index(cards[-1].rank)
+                return answer
+        if self.three_of_kind(cards):
+            answer[0] = 'Three of a King'
+            answer[1] = order.index(five_cards[2].rank)  # The middle card belongs always to the triple.
+            return answer
+        if self.two_pairs(cards):
+            answer[0] = 'Two Pairs'
+            if cards[-1].rank == cards[-2]:
+                answer[1] = 100*order.index(cards[-1].rank) + order.index(cards[1].rank)
+            else:
+                answer[1] = 100*order.index(cards[2].rank) + order.index(cards[0].rank)
+            return answer
+        if self.one_pair(cards):
+            answer[0] = 'One Pair'
+            for i in range(4):
+                if cards[i].rank == cards[i+1].rank:
+                    answer[1] = order.index(cards[i].rank)
+            return answer
+        answer = ['High Card', order.index(cards[-1])]
+        return answer
+
+    def evaluate(self, *hand_combined_with_common):
+        ranking = {'Royal Flush': 9, 'Straight Flush': 8, 'Four of a Kind': 7, 'Full House': 6, 'Straight': 4,
+                   'Flush': 5, 'Three of a King': 3, 'Two Pairs': 2, 'One Pair': 1, 'High Card': 0}
+        seven_cards = list(hand_combined_with_common)
+        for i in range(6):
+            for j in range(i + 1, 7):
+                temp_hnd = seven_cards.copy()
+                temp_hnd.remove(seven_cards[i])
+                temp_hnd.remove(seven_cards[j])
+                [tmp_result, tmp_score] = self.hand_evaluator(temp_hnd)
+                if ranking[tmp_result] > ranking[self.result]:
+                    self.result = tmp_result
+                    self.score = tmp_score
+                if tmp_result == self.result and self.score < tmp_score:
+                    self.score = tmp_score
 
 
 class Player(Evaluator):
@@ -118,90 +261,3 @@ class Table(object):
         if player.bet > self.max_bet:
             self.max_bet = player.bet
             self.current_player = player
-
-
-class Texas(object):
-    pass
-
-
-class Evaluator(object):
-    order = ['Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Jack', 'Queen', 'King', 'Ace']
-    suits = {'h': 'Heart', 'd': 'Diamond', 's': 'Spade', 'c': 'Club'}
-    best_combination = []
-    result = 0
-    score = 0
-
-    def create_ordered_hand(self, *five_cards):
-        self.best_combination = five_cards.copy()
-        self.best_combination.sort(key=lambda x: self.order.index(x.rank))
-
-    def straight(self):
-        if self.best_combination[-1].suit == 'Ace' and self.best_combination[0].suit == 'Two' \
-                and self.best_combination[1].suit == 'Three' and self.best_combination[2].suit == 'Four' \
-                and self.best_combination[3].suit == 'Five':
-            self.score = 3  # highest card is order[3] == 'Five'
-            return True
-        start = self.order.index(self.best_combination[0].suit)
-        for i in range(1, 5):
-            if self.order.index(self.best_combination[i].suit) != start+i:
-                return False
-        return True
-
-    def flush(self):
-        for card in self.best_combination:
-            if card.suit != self.best_combination[0].suit:
-                return False
-        return True
-
-    def one_pair(self):
-        for i in range(4):
-            if self.best_combination[i].suit == self.best_combination[i + 1].suit:
-                return True
-        return False
-
-    def two_pairs(self):
-        if self.best_combination[0].suit == self.best_combination[1].suit:
-            if self.best_combination[2].suit == self.best_combination[3].suit or \
-                            self.best_combination[3].suit == self.best_combination[4].suit:
-                return True
-        if self.best_combination[1].suit == self.best_combination[2].suit \
-                and self.best_combination[0].suit == self.best_combination[1].suit:
-            return True
-        return False
-
-    def three(self):
-        for i in range(3):
-            if self.best_combination[i].suit == self.best_combination[i + 1].suit \
-                    and self.best_combination[i].suit == self.best_combination[i + 2].suit:
-                return True
-        return False
-
-    def full_house(self):
-        if self.best_combination[0].suit == self.best_combination[1].suit \
-                and self.best_combination[3].suit == self.best_combination[4].suit:
-            if self.best_combination[0].suit == self.best_combination[2].suit \
-                    or self.best_combination[0].suit == self.best_combination[3].suit:
-                return True
-        return False
-
-    def evaluate(self, *hand_combined_with_common):
-        for i in range(6):
-            for j in range(i + 1, 7):
-                temp_hnd = hand_combined_with_common.copy()
-                temp_hnd.remove(hand_combined_with_common[i])
-                temp_hnd.remove(hand_combined_with_common[j])
-                self.create_ordered_hand(temp_hnd)
-
-                if self.score <
-
-                print(temp_hnd)
-
-
-
-d = Deck()
-p = Player("John")
-print(d)
-print(p)
-print(p.hand)
-p.get_hand(d)
-print(p.hand)
